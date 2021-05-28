@@ -3,5 +3,5 @@ language: C
 compiler: gcc
 
 script:
- - gcc giftcardreader.c
- - giftcardreader
+ - make
+
