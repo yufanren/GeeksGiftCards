@@ -6,12 +6,12 @@ giftcardexamplewriter:
 	gcc -o giftcardexamplewriter giftcardexamplewriter.c && ./giftcardexamplewriter
 
 testcrash1:
-	./giftcardreader 1 crash1.gft
+	./giftcardreader 1 bugs/crash1.gft
 	
 testcrash2:
-	./giftcardreader 1 crash2.gft
+	./giftcardreader 1 bugs/crash2.gft
 	
 testhang:
-	./giftcardreader 1 hang.gft	
+	./giftcardreader 1 bugs/hang.gft	
 
 
