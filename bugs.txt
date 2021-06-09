@@ -1,0 +1,43 @@
+hang.gft: integer overflow.
+
+	Inside the animate() function for type_of_record(3), certain sequence of numbers can cause the 
+	program to hang.
+
+	Several places inside this function, an unsigned char is cast into char. When a unsigned char > 127 is
+	cast into a char it becomes negative. The unsigned char *pc counter reads 3 bytes per cycle. The 
+	following sequence: (9, 253, _)* will move the pc counter 3 bytes backwards. (unsigned int 253 
+	turns into int -3 with cast) Having this seqence inside the animation program will create a infinite
+	loop for the pc counter and the program will hang.
+
+	To fix this bug, disallow any value for opcode that can be cast into negative int and disallow arg1
+	or arg2 to be > 15 since they are used for indexing a 16 slot array. This way the pc counter can not
+	be moved backwards.   
+
+crash1.gft: buffer overflow.
+
+	This crash use the same bug inside the animate() function as in hang.gft.
+
+	The following 9 bytes (3,127, _, 2, _, _, 9, 247, _)* crashes the animate() program. First the mptr pointer is
+	move forward (or backward by casting a unsigned int) up to 127 bytes, then it trys to write to where mptr pointer points
+	to. Then the pc pointer is moved back 9 bytes to repeat this sequence in an infinite loop. The mptr pointer moves
+	outside the allocated memory and the writing action starts causing undefined behavior. The mptr pointer keeps moving and 
+	writing. Sooner or later the program crashes(usually perceived as immediately by a human).
+
+	For this particular case the fix for hang.gft will also prevent the crash. It would be a good idea to check the position
+	of both mptr and pc counters everytime it is changed by a variable amount. If it moves outside the 'program' section then
+	the animate() function should end.
+
+crash2.gft: unsigned integer underflow.
+
+	If a negative number is read into ret_val->num_bytes, a segmentation fault is resulted.
+
+	Inside the fread(), the parameter type for size is size_t, an unsigned integer. A negative int 
+	is automatically casted into size_t. It wraps around and become a huge positive integer. Calling 
+	malloc() on this huge number fails and return a NULL pointer. Then fread() is called again trying to
+	write this huge amount of memory to a Null pointer. A segmentation fault happens  at this point.
+
+	To fix this simply check the input for ret_val->num_bytes. If it is less than 0 then terminate the 
+	giftcard reader. It doesn't make sense to have negative size on the record anyway. It probably 
+	indicates a invalid giftcard record.  
+
+* '_' means any value.

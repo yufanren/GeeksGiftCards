@@ -15,7 +15,6 @@
 
 // interpreter for THX-1138 assembly
 void animate(char *msg, unsigned char *program) {
-
     unsigned char regs[16];
     char *mptr = msg;
     unsigned char *pc = program;
@@ -26,15 +25,6 @@ void animate(char *msg, unsigned char *program) {
         op = *pc;
         arg1 = *(pc+1);
         arg2 = *(pc+2);
-
-        if (op > 127) {
-        	printf("	Invalid animation format, opcode = %d at %p. Aborting...\n", (char)op, &op);
-        	break;
-        }
-        if (arg1 > 15 || arg2 > 15) {
-        	printf("	Invalid animation format, arg1 = %d at %p, arg2 = %d at %p. Aborting...\n", (char)arg1, &arg1, (char)arg2, &arg2);
-        	break;
-        }
         switch (*pc) {
             case 0x00:
                 break;
@@ -80,7 +70,6 @@ done:
 int get_gift_card_value(struct this_gift_card *thisone);
 
 void print_gift_card_info(struct this_gift_card *thisone) {
-
 	struct gift_card_data *gcd_ptr;
 	struct gift_card_record_data *gcrd_ptr;
 	struct gift_card_amount_change *gcac_ptr;
@@ -198,12 +187,6 @@ struct this_gift_card *gift_card_reader(FILE *input_fd) {
 		struct gift_card_data *gcd_ptr;
 		/* JAC: Why aren't return types checked? */
 		fread(&ret_val->num_bytes, 4,1, input_fd);	
-
-		if (ret_val->num_bytes < 0) {
-			printf("Invalid number of bytes in record: %d\n", ret_val->num_bytes);
-			free(ret_val);
-			exit(0);
-		}
 		
 		// Make something the size of the rest and read it in
 		ptr = malloc(ret_val->num_bytes);
@@ -218,28 +201,28 @@ struct this_gift_card *gift_card_reader(FILE *input_fd) {
 		gcd_ptr->customer_id = ptr;
 		ptr += 32;	
 		/* JAC: Something seems off here... */
-		gcd_ptr->number_of_gift_card_records = *((char *)ptr);	/*char* means 1 byte? number of records should be 4 bytes. Value > 127 sliced!*/
+		gcd_ptr->number_of_gift_card_records = *((char *)ptr);	/*char* means 1 byte? number of records should be 4 bytes. Value > 256 sliced!*/
 		ptr += 4;
 
 		gcd_ptr->gift_card_record_data = (void *)malloc(gcd_ptr->number_of_gift_card_records*sizeof(void*));
 
 		// Now ptr points at the gift card recrod data
 		for (int i=0; i<=gcd_ptr->number_of_gift_card_records; i++){
-
+			//printf("i: %d\n",i);
 			struct gift_card_record_data *gcrd_ptr;
 			gcrd_ptr = gcd_ptr->gift_card_record_data[i] = malloc(sizeof(struct gift_card_record_data));
 			struct gift_card_amount_change *gcac_ptr;
 			gcac_ptr = gcrd_ptr->actual_record = malloc(sizeof(struct gift_card_record_data));
             struct gift_card_program *gcp_ptr;
-			gcp_ptr = malloc(sizeof(struct gift_card_program)); 
+			gcp_ptr = malloc(sizeof(struct gift_card_program)); /* Always malloc memeory for amount_change and program without checking type_of_record.*/
 
 			gcrd_ptr->record_size_in_bytes = *((char *)ptr); /*Reads 1 byte, should be (int*) ?*/
-            //printf("rec at %x, %d bytes\n", (unsigned int)(ptr - optr), gcrd_ptr->record_size_in_bytes); 
+            //printf("rec at %x, %d bytes\n", ptr - optr, gcrd_ptr->record_size_in_bytes); 
 			ptr += 4;	
 			//printf("record_data: %d\n",gcrd_ptr->record_size_in_bytes);
 			gcrd_ptr->type_of_record = *((char *)ptr);
 			ptr += 4;	
-           	//printf("type of rec: %d\n", gcrd_ptr->type_of_record);
+            //printf("type of rec: %d\n", gcrd_ptr->type_of_record);
 
 			// amount change
 			if (gcrd_ptr->type_of_record == 1) {
