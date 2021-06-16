@@ -1,4 +1,4 @@
-hang.gft: integer overflow.
+hang.gft:
 
 	Inside the animate() function for type_of_record(3), certain sequence of numbers can cause the 
 	program to hang.
@@ -9,11 +9,9 @@ hang.gft: integer overflow.
 	turns into int -3 with cast) Having this seqence inside the animation program will create a infinite
 	loop for the pc counter and the program will hang.
 
-	To fix this bug, disallow any value for opcode that can be cast into negative int and disallow arg1
-	or arg2 to be > 15 since they are used for indexing a 16 slot array. This way the pc counter can not
-	be moved backwards.   
+	To fix this bug, remove the int cast for arg1 before adding it to pc. 
 
-crash1.gft: buffer overflow.
+crash1.gft:
 
 	This crash use the same bug inside the animate() function as in hang.gft.
 
@@ -27,7 +25,7 @@ crash1.gft: buffer overflow.
 	of both mptr and pc counters everytime it is changed by a variable amount. If it moves outside the 'program' section then
 	the animate() function should end.
 
-crash2.gft: unsigned integer underflow.
+crash2.gft:
 
 	If a negative number is read into ret_val->num_bytes, a segmentation fault is resulted.
 

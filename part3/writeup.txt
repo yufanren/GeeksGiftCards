@@ -1,0 +1,33 @@
+cov1.gft:
+Added coverage for type_of_record = 2.
+
+cov2.gft:
+Added coverage for most switch cases inside the animate() program.
+
+code coverage with all cases by end of part2:
+73.7%
+folder: Coverage-part2
+
+code coverage with all cases after handwritten tests:
+95.9%
+folder: Coverage-handwritten
+
+fuzzer1.gft:
+When the animate() function is called, the following sequence appeared 
+in one of the 3 byte codes: (4, 0, 40). The unsigned char regs[] array only 
+has 16 slots available. The program tried to write at regs[40], causeing a 
+buffer overflow. Upon exiting the op code reading loop the program throws a
+seg fault and crashes.
+
+fuzer2.gft:
+When the animate() function is called, the following sequence appeared 
+in one of the 3 byte codes: (1, 24, 0). The unsigned char regs[] array only 
+has 16 slots available. The program tried to write at regs[24], causeing a 
+buffer overflow. Upon exiting the op code reading loop the program prints 
+that stack smashing was detected and aborted.
+
+The 2 cases above are all caused by the program allowing writing outside an
+array's allocated memory space. After running afl-fuzz for 3 hours, 8 crashes
+were found, all of them had similar root causes. The fix is to skip the executin 
+step when an arg1 or arg2 values >= 16 is observed. 
+

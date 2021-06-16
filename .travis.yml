@@ -7,4 +7,5 @@ script:
  - make testcrash1
  - make testcrash2
  - make testhang
+ - make testsuite
 

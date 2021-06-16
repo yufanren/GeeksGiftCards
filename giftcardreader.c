@@ -10,8 +10,8 @@
 #include "giftcard.h"
 
 #include <stdio.h>
-#include <strings.h>
 #include <string.h>
+#include <strings.h>
 
 // interpreter for THX-1138 assembly
 void animate(char *msg, unsigned char *program) {
@@ -27,36 +27,36 @@ void animate(char *msg, unsigned char *program) {
         arg1 = *(pc+1);
         arg2 = *(pc+2);
 
-        if (op > 127) {
-        	printf("	Invalid animation format, opcode = %d at %p. Aborting...\n", (char)op, &op);
-        	break;
-        }
-        if (arg1 > 15 || arg2 > 15) {
-        	printf("	Invalid animation format, arg1 = %d at %p, arg2 = %d at %p. Aborting...\n", (char)arg1, &arg1, (char)arg2, &arg2);
-        	break;
-        }
+
         switch (*pc) {
             case 0x00:
                 break;
             case 0x01:
-                regs[arg1] = *mptr;
+            	if (arg1 < 16)
+                	regs[arg1] = *mptr;
                 break;
             case 0x02:
                 *mptr = regs[arg1];
                 break;
             case 0x03:
-                mptr += (char)arg1;
+                mptr += arg1;
                 break;
             case 0x04:
-                regs[arg2] = arg1;
+            	if (arg2 < 16)
+                	regs[arg2] = arg1;
                 break;
             case 0x05:
-                regs[arg1] ^= regs[arg2];
-                zf = !regs[arg1];
+            	if (arg1 < 16 && arg2 < 16) {
+            	    regs[arg1] ^= regs[arg2];
+                	zf = !regs[arg1];
+            	}
+
                 break;
             case 0x06:
-                regs[arg1] += regs[arg2];
-                zf = !regs[arg1];
+            	if (arg1 < 16 && arg2 < 16) {
+                	regs[arg1] += regs[arg2];
+                	zf = !regs[arg1];
+            	}
                 break;
             case 0x07:
                 puts(msg);
@@ -64,23 +64,21 @@ void animate(char *msg, unsigned char *program) {
             case 0x08:
                 goto done;
             case 0x09:
-                pc += (char)arg1;
+                pc += arg1;
                 break;
             case 0x10:
-                if (zf) pc += (char)arg1;
+                if (zf) pc += arg1;
                 break;
         }
         pc+=3;
         if (pc > program+256) break;
     }
+    printf("done with animation");
 done:
     return;
 }
 
-int get_gift_card_value(struct this_gift_card *thisone);
-
 void print_gift_card_info(struct this_gift_card *thisone) {
-
 	struct gift_card_data *gcd_ptr;
 	struct gift_card_record_data *gcrd_ptr;
 	struct gift_card_amount_change *gcac_ptr;
@@ -197,14 +195,14 @@ struct this_gift_card *gift_card_reader(FILE *input_fd) {
 
 		struct gift_card_data *gcd_ptr;
 		/* JAC: Why aren't return types checked? */
-		fread(&ret_val->num_bytes, 4,1, input_fd);	
+		fread(&ret_val->num_bytes, 4,1, input_fd);
 
 		if (ret_val->num_bytes < 0) {
 			printf("Invalid number of bytes in record: %d\n", ret_val->num_bytes);
 			free(ret_val);
 			exit(0);
 		}
-		
+
 		// Make something the size of the rest and read it in
 		ptr = malloc(ret_val->num_bytes);
 		fread(ptr, ret_val->num_bytes, 1, input_fd);
@@ -214,32 +212,32 @@ struct this_gift_card *gift_card_reader(FILE *input_fd) {
 		gcd_ptr = ret_val->gift_card_data = malloc(sizeof(struct gift_card_data));
 		gcd_ptr->merchant_id = ptr;
 		ptr += 32;	
-//		printf("VD: %d\n",(int)ptr - (int) gcd_ptr->merchant_id);
+		//printf("VD: %d\n",(int)ptr - (int) gcd_ptr->merchant_id);
 		gcd_ptr->customer_id = ptr;
 		ptr += 32;	
 		/* JAC: Something seems off here... */
-		gcd_ptr->number_of_gift_card_records = *((char *)ptr);	/*char* means 1 byte? number of records should be 4 bytes. Value > 127 sliced!*/
+		gcd_ptr->number_of_gift_card_records = *((char *)ptr);
 		ptr += 4;
 
 		gcd_ptr->gift_card_record_data = (void *)malloc(gcd_ptr->number_of_gift_card_records*sizeof(void*));
 
 		// Now ptr points at the gift card recrod data
 		for (int i=0; i<=gcd_ptr->number_of_gift_card_records; i++){
-
+			//printf("i: %d\n",i);
 			struct gift_card_record_data *gcrd_ptr;
 			gcrd_ptr = gcd_ptr->gift_card_record_data[i] = malloc(sizeof(struct gift_card_record_data));
 			struct gift_card_amount_change *gcac_ptr;
 			gcac_ptr = gcrd_ptr->actual_record = malloc(sizeof(struct gift_card_record_data));
             struct gift_card_program *gcp_ptr;
-			gcp_ptr = malloc(sizeof(struct gift_card_program)); 
+			gcp_ptr = malloc(sizeof(struct gift_card_program));
 
-			gcrd_ptr->record_size_in_bytes = *((char *)ptr); /*Reads 1 byte, should be (int*) ?*/
-            //printf("rec at %x, %d bytes\n", (unsigned int)(ptr - optr), gcrd_ptr->record_size_in_bytes); 
+			gcrd_ptr->record_size_in_bytes = *((char *)ptr);
+            //printf("rec at %x, %d bytes\n", ptr - optr, gcrd_ptr->record_size_in_bytes); 
 			ptr += 4;	
 			//printf("record_data: %d\n",gcrd_ptr->record_size_in_bytes);
 			gcrd_ptr->type_of_record = *((char *)ptr);
 			ptr += 4;	
-           	//printf("type of rec: %d\n", gcrd_ptr->type_of_record);
+            //printf("type of rec: %d\n", gcrd_ptr->type_of_record);
 
 			// amount change
 			if (gcrd_ptr->type_of_record == 1) {
@@ -248,7 +246,7 @@ struct this_gift_card *gift_card_reader(FILE *input_fd) {
 
 				// don't need a sig if negative
 				/* JAC: something seems off here */
-				if (gcac_ptr < 0) break;	
+				if (gcac_ptr < 0) break;
 
 				gcac_ptr->actual_signature = ptr;
 				ptr+=32;
@@ -258,7 +256,7 @@ struct this_gift_card *gift_card_reader(FILE *input_fd) {
 				gcrd_ptr->actual_record = ptr;
 				// advance by the string size + 1 for nul
                 // BDG: does not seem right
-				ptr=ptr+strlen((char *)gcrd_ptr->actual_record)+1; 
+				ptr=ptr+strlen((char *)gcrd_ptr->actual_record)+1;
 			}
             // BDG: never seen one of these in the wild
             // text animatino (BETA)
